@@ -89,7 +89,7 @@ class TestORM(TransactionCase):
         with self.assertRaises(AccessError):
             p1.with_user(user).unlink()
 
-        # Prepare mixed case 
+        # Prepare mixed case
         p2.unlink()
         # read mixed records: some deleted and some filtered
         with self.assertRaises(AccessError):
@@ -399,5 +399,21 @@ class TestInherits(TransactionCase):
 
         # write base64 image
         user.write({'image_1920': 'R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='})
+        user.flush_recordset()
+
         write_date_after = user.write_date
         self.assertNotEqual(write_date_before, write_date_after)
+
+
+    @mute_logger('odoo.models')
+    def test_non_stored_write_date(self):
+        """ assigining a non-stored field should not update write_date """
+        user = self.env.user
+        write_date_before = user.write_date
+
+        user.companies_count = 99999 # assign non-stored computed field.
+        user.flush_recordset() # Flush changes.
+
+        write_date_after = user.write_date
+
+        self.assertEqual(write_date_before, write_date_after)
